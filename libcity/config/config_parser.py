@@ -51,17 +51,23 @@ class ConfigParser(object):
     def _parse_config_file(self, config_file):
         if config_file is not None:
             # TODO: 对 config file 的格式进行检查
-            if os.path.exists('./{}.json'.format(config_file)):
-                with open('./{}.json'.format(config_file), 'r') as f:
-                    x = json.load(f)
-                    for key in x:
-                        if key not in self.config:
-                            self.config[key] = x[key]
+            abs_path = './{}.json'.format(config_file)
+            default_path = './libcity/config/model/{}/{}.json'.format(self.config['task'], config_file)
+
+            if os.path.exists(abs_path):
+                path = abs_path
+            elif os.path.exists(default_path):
+                path = default_path
             else:
                 raise FileNotFoundError(
                     'Config file {}.json is not found. Please ensure \
                     the config file is in the root dir and is a JSON \
                     file.'.format(config_file))
+            with open(path, 'r') as f:
+                x = json.load(f)
+                for key in x:
+                    if key not in self.config:
+                        self.config[key] = x[key]
 
     def _load_default_config(self):
         # 首先加载 task config
@@ -96,8 +102,8 @@ class ConfigParser(object):
             #         self.config['task'], self.config['dataset']))
         # 接着加载每个阶段的 default config
         default_file_list = []
-        # model
-        default_file_list.append('model/{}/{}.json'.format(self.config['task'], self.config['model']))
+        # model 
+        # default_file_list.append('model/{}/{}.json'.format(self.config['task'], self.config['model']))
         # dataset
         default_file_list.append('data/{}.json'.format(self.config['dataset_class']))
         # executor
@@ -124,7 +130,7 @@ class ConfigParser(object):
                         self.config[key] = x[key]
 
     def _init_device(self):
-        use_gpu = self.config.get('gpu', True)
+        use_gpu = self.config.get('gpu', False)
         gpu_id = self.config.get('gpu_id', 0)
         if use_gpu:
             torch.cuda.set_device(gpu_id)

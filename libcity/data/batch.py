@@ -145,7 +145,8 @@ class BatchPAD(Batch):
         """
         for key in self.data:
             if self.feature_name[key] == 'int':
-                self.data[key] = torch.LongTensor(np.array(self.data[key])).to(device)
+                self.data[key] = torch.LongTensor(np.array(self.data[key])).to(device)   
+                
             elif self.feature_name[key] == 'float':
                 self.data[key] = torch.FloatTensor(np.array(self.data[key])).to(device)
             elif self.feature_name[key] == 'array of int':

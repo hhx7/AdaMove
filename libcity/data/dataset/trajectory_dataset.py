@@ -1,5 +1,6 @@
 import os
-import json
+import json as json
+import random 
 import pandas as pd
 import math
 from tqdm import tqdm
@@ -15,7 +16,6 @@ parameter_list = ['dataset', 'min_session_len', 'min_sessions', "max_session_len
 
 
 class TrajectoryDataset(AbstractDataset):
-
     def __init__(self, config):
         self.config = config
         self.cache_file_folder = './libcity/cache/dataset_cache/'
@@ -24,7 +24,6 @@ class TrajectoryDataset(AbstractDataset):
             self.cut_data_cache += '_' + str(self.config[param])
         self.cut_data_cache += '.json'
         self.dataset = self.config.get('dataset', '')
-        self.geo_file = self.config.get('geo_file', self.dataset)
         self.dyna_file = self.config.get('dyna_file', self.dataset)
         self.data_path = './raw_data/{}/'.format(self.dataset)
         self.data = None
@@ -45,7 +44,7 @@ class TrajectoryDataset(AbstractDataset):
                 self.pad_item = self.data['pad_item']
                 f.close()
             else:
-                if os.path.exists(self.cut_data_cache):
+                if self.config['cache_dataset'] and os.path.exists(self.cut_data_cache):
                     f = open(self.cut_data_cache, 'r')
                     cut_data = json.load(f)
                     f.close()
@@ -56,14 +55,14 @@ class TrajectoryDataset(AbstractDataset):
                     with open(self.cut_data_cache, 'w') as f:
                         json.dump(cut_data, f)
                 self.logger.info('finish cut data')
+                
                 encoded_data = self.encode_traj(cut_data)
                 self.data = encoded_data
                 self.pad_item = self.encoder.pad_item
-                if self.config['cache_dataset']:
-                    if not os.path.exists(self.cache_file_folder):
-                        os.makedirs(self.cache_file_folder)
-                    with open(self.encoder.cache_file_name, 'w') as f:
-                        json.dump(encoded_data, f)
+                if not os.path.exists(self.cache_file_folder):
+                    os.makedirs(self.cache_file_folder)
+                with open(self.encoder.cache_file_name, 'w') as f:
+                    json.dump(encoded_data, f)
         # user 来划，以及按轨迹数来划。
         # TODO: 这里可以设一个参数，现在先按照轨迹数来划吧
         train_data, eval_data, test_data = self.divide_data()
@@ -71,7 +70,7 @@ class TrajectoryDataset(AbstractDataset):
                                        self.encoder.feature_dict,
                                        self.config['batch_size'],
                                        self.config['num_workers'], self.pad_item,
-                                       self.encoder.feature_max_len)
+                                       self.encoder.feature_max_len, self.config['shuffle'])
 
     def get_data_feature(self):
         res = self.data['data_feature']
@@ -98,15 +97,21 @@ class TrajectoryDataset(AbstractDataset):
                 ...
             }
         """
+        self.logger.info('start cutting data')
         # load data according to config
         traj = pd.read_csv(os.path.join(
             self.data_path, '{}.dyna'.format(self.dyna_file)))
+
         # filter inactive poi
         group_location = traj.groupby('location').count()
-        filter_location = group_location[group_location['time'] >= self.config['min_checkins']]
+        filter_location = group_location[group_location['entity_id'] >= self.config['min_checkins']]
         location_index = filter_location.index.tolist()
         traj = traj[traj['location'].isin(location_index)]
-        user_set = pd.unique(traj['entity_id'])
+
+
+
+        user_set = pd.unique(traj['entity_id']).tolist()
+
         res = {}
         min_session_len = self.config['min_session_len']
         max_session_len = self.config['max_session_len']
@@ -115,7 +120,7 @@ class TrajectoryDataset(AbstractDataset):
         cut_method = self.config['cut_method']
         if cut_method == 'time_interval':
             # 按照时间窗口进行切割
-            for uid in tqdm(user_set, desc="cut and filter trajectory"):
+            for uid in tqdm(user_set, desc="cut and filter trajectory[time_interval]"):
                 usr_traj = traj[traj['entity_id'] == uid].to_numpy()
                 sessions = []  # 存放该用户所有的 session
                 session = []  # 单条轨迹
@@ -134,51 +139,6 @@ class TrajectoryDataset(AbstractDataset):
                             session = []
                             session.append(row.tolist())
                     prev_time = now_time
-                if len(session) >= min_session_len:
-                    sessions.append(session)
-                if len(sessions) >= min_sessions:
-                    res[str(uid)] = sessions
-        elif cut_method == 'same_date':
-            # 将同一天的 check-in 划为一条轨迹
-            for uid in tqdm(user_set, desc="cut and filter trajectory"):
-                usr_traj = traj[traj['entity_id'] == uid].to_numpy()
-                sessions = []  # 存放该用户所有的 session
-                session = []  # 单条轨迹
-                prev_date = None
-                for index, row in enumerate(usr_traj):
-                    now_time = parse_time(row[2])
-                    now_date = now_time.day
-                    if index == 0:
-                        session.append(row.tolist())
-                    else:
-                        if prev_date == now_date and len(session) < max_session_len:
-                            # 还是同一天
-                            session.append(row.tolist())
-                        else:
-                            if len(session) >= min_session_len:
-                                sessions.append(session)
-                            session = []
-                            session.append(row.tolist())
-                    prev_date = now_date
-                if len(session) >= min_session_len:
-                    sessions.append(session)
-                if len(sessions) >= min_sessions:
-                    res[str(uid)] = sessions
-        else:
-            # cut by fix window_len used by STAN
-            if max_session_len != window_size:
-                raise ValueError('the fixed length window is not equal to max_session_len')
-            for uid in tqdm(user_set, desc="cut and filter trajectory"):
-                usr_traj = traj[traj['entity_id'] == uid].to_numpy()
-                sessions = []  # 存放该用户所有的 session
-                session = []  # 单条轨迹
-                for index, row in enumerate(usr_traj):
-                    if len(session) < window_size:
-                        session.append(row.tolist())
-                    else:
-                        sessions.append(session)
-                        session = []
-                        session.append(row.tolist())
                 if len(session) >= min_session_len:
                     sessions.append(session)
                 if len(sessions) >= min_sessions:
@@ -209,10 +169,12 @@ class TrajectoryDataset(AbstractDataset):
                     pad_item: {...},
                     encoded_data: {uid: encoded_trajectories}
                 }
-        """
+        """ 
         encoded_data = {}
         for uid in tqdm(data, desc="encoding trajectory"):
             encoded_data[uid] = self.encoder.encode(int(uid), data[uid])
+        
+ 
         self.encoder.gen_data_feature()
         return {
             'data_feature': self.encoder.data_feature,
@@ -227,12 +189,13 @@ class TrajectoryDataset(AbstractDataset):
             eval_data (list)
             test_data (list)
         """
+        # filter
         train_data = []
         eval_data = []
         test_data = []
         train_rate = self.config['train_rate']
         eval_rate = self.config['eval_rate']
-        user_set = self.data['encoded_data'].keys()
+        user_set = self.data['encoded_data'].keys() 
         for uid in tqdm(user_set, desc="dividing data"):
             encoded_trajectories = self.data['encoded_data'][uid]
             traj_len = len(encoded_trajectories)
@@ -240,9 +203,14 @@ class TrajectoryDataset(AbstractDataset):
             train_num = math.ceil(traj_len * train_rate)
             eval_num = math.ceil(
                 traj_len * (train_rate + eval_rate))
+
             train_data += encoded_trajectories[:train_num]
             eval_data += encoded_trajectories[train_num:eval_num]
-            test_data += encoded_trajectories[eval_num:]
+            test_data += encoded_trajectories[eval_num:] # 可能为空
+        self.logger.info(
+            f"train: {len(train_data)}, eval: {len(eval_data)}, test: {len(test_data)}, "
+            f"location: {self.data['data_feature']['loc_size']}, user: {self.data['data_feature']['uid_size']}"
+        )     
         return train_data, eval_data, test_data
 
     def get_encoder(self):

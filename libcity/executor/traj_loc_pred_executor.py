@@ -1,3 +1,4 @@
+from collections import Counter
 from ray import tune
 import torch
 import torch.optim as optim
@@ -7,6 +8,10 @@ from logging import getLogger
 
 from libcity.executor.abstract_executor import AbstractExecutor
 from libcity.utils import get_evaluator
+
+
+    
+
 
 
 class TrajLocPredExecutor(AbstractExecutor):
@@ -27,6 +32,26 @@ class TrajLocPredExecutor(AbstractExecutor):
         self._logger = getLogger()
         self.optimizer = self._build_optimizer()
         self.scheduler = self._build_scheduler()
+        self.data_feature = data_feature
+        self.device = config['device']
+
+    def reset(self, config, model, data_feature):
+        self.evaluator = get_evaluator(config)
+        if(type(config['topk']) == type(0)):
+            self.metrics = 'Recall@{}'.format(config['topk'])
+        elif(type(config['topk']) == type([])):
+            self.metrics = 'Recall@{}'.format(config['topk'][0])
+        self.config = config
+        self.model = model.to(self.config['device'])
+        self.tmp_path = './libcity/tmp/checkpoint/'
+        self.exp_id = self.config.get('exp_id', None)
+        self.cache_dir = './libcity/cache/{}/model_cache'.format(self.exp_id)
+        self.evaluate_res_dir = './libcity/cache/{}/evaluate_cache'.format(self.exp_id)
+        self.loss_func = None  # TODO: 根据配置文件支持选择特定的 Loss Func 目前并未实装
+        self._logger = getLogger()
+        self.optimizer = self._build_optimizer()
+        self.scheduler = self._build_scheduler()
+        self.data_feature = data_feature
 
     def train(self, train_dataloader, eval_dataloader):
         if not os.path.exists(self.tmp_path):
@@ -41,8 +66,11 @@ class TrajLocPredExecutor(AbstractExecutor):
                                             self.config['learning_rate'], self.config['clip'])
             self._logger.info('==>Train Epoch:{:4d} Loss:{:.5f} learning_rate:{}'.format(
                 epoch, avg_loss, lr))
-            # eval stage
+            # eval stage 
             self._logger.info('start evaluate')
+            if epoch == self.config['max_epoch'] - 1:
+                avg_eval_acc, avg_eval_loss = self._valid_epoch(train_dataloader, self.model)
+                self._logger.info('==>Train Acc:{:.5f} Train Loss:{:.5f}'.format(avg_eval_acc, avg_eval_loss))
             avg_eval_acc, avg_eval_loss = self._valid_epoch(eval_dataloader, self.model)
             self._logger.info('==>Eval Acc:{:.5f} Eval Loss:{:.5f}'.format(avg_eval_acc, avg_eval_loss))
             metrics['accuracy'].append(avg_eval_acc)
@@ -62,6 +90,9 @@ class TrajLocPredExecutor(AbstractExecutor):
             # 若当前学习率小于特定值，则 early stop
             lr = self.optimizer.param_groups[0]['lr']
             if lr < self.config['early_stop_lr']:
+                avg_eval_acc, avg_eval_loss = self._valid_epoch(train_dataloader, self.model)
+                self._logger.info('lr:{:.5f} early_stop_lr:{:.5f}'.format(lr, self.config['early_stop_lr'])) 
+                self._logger.info('==>Train Acc:{:.5f} Train Loss:{:.5f}'.format(avg_eval_acc, avg_eval_loss))
                 break
         if not self.config['hyper_tune'] and self.config['load_best_epoch']:
             best = np.argmax(metrics['accuracy'])  # 这个不是最好的一次吗？
@@ -76,7 +107,7 @@ class TrajLocPredExecutor(AbstractExecutor):
         os.rmdir(self.tmp_path)
 
     def load_model(self, cache_name):
-        model_state, optimizer_state = torch.load(cache_name)
+        model_state, optimizer_state = torch.load(cache_name, map_location=self.device, weights_only=False)
         self.model.load_state_dict(model_state)
         self.optimizer.load_state_dict(optimizer_state)
 
@@ -89,6 +120,7 @@ class TrajLocPredExecutor(AbstractExecutor):
     def evaluate(self, test_dataloader):
         self.model.train(False)
         self.evaluator.clear()
+        print('---------------test--------------')
         for batch in test_dataloader:
             batch.to_tensor(device=self.config['device'])
             scores = self.model.predict(batch)
@@ -109,6 +141,7 @@ class TrajLocPredExecutor(AbstractExecutor):
                 }
             self.evaluator.collect(evaluate_input)
         self.evaluator.save_result(self.evaluate_res_dir)
+        
 
     def run(self, data_loader, model, lr, clip):
         model.train(True)
@@ -118,6 +151,7 @@ class TrajLocPredExecutor(AbstractExecutor):
         loss_func = self.loss_func or model.calculate_loss
         for batch in data_loader:
             # one batch, one step
+            # torch.cuda.empty_cache()
             self.optimizer.zero_grad()
             batch.to_tensor(device=self.config['device'])
             loss = loss_func(batch)

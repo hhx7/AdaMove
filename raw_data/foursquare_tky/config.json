@@ -1,0 +1,22 @@
+{
+    "geo": {
+        "including_types": ["Point"],
+        "Point": {
+            "venue_category_id": "enum",
+            "venue_category_name": "enum"
+        }
+    },
+    "usr": {
+        "properties": {}
+    },
+    "dyna": {
+        "including_types": ["trajectory"],
+        "trajectory": {
+            "entity_id": "usr_id",
+            "location": "geo_id"
+        }
+    },
+    "info": {
+        "distance_upper": 30.0
+    }
+}

@@ -1,6 +1,4 @@
 /.vscode
-/raw_data/*
-/visualized_data/*
 /libcity/tmp/*
 /libcity/cache/*
 /libcity/__pycache__

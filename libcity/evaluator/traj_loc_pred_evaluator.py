@@ -41,6 +41,9 @@ class TrajLocPredEvaluator(AbstractEvaluator):
         """
         if not isinstance(batch, dict):
             raise TypeError('evaluator.collect input is not a dict of user')
+        # uid = batch['uid']
+        # unique_list = list(set(uid))
+        # print('uid', len(unique_list))
         if(type(self.topk) == type(0)):
             hit, rank, dcg = top_k(batch['loc_pred'], batch['loc_true'], self.topk)
             total = len(batch['loc_true'])
@@ -62,10 +65,12 @@ class TrajLocPredEvaluator(AbstractEvaluator):
             precision_key = 'Precision@{}'.format(self.topk)
             precision = self.intermediate_result['hit'] / (
                     self.intermediate_result['total'] * self.topk)
+            print('hit', self.intermediate_result['hit'])
             if 'Precision' in self.metrics:
                 self.result[precision_key] = precision
             # recall is used to valid in the trainning, so must exit
             recall_key = 'Recall@{}'.format(self.topk)
+            print('total positives',self.intermediate_result['total'])
             recall = self.intermediate_result['hit'] \
                      / self.intermediate_result['total']
             self.result[recall_key] = recall

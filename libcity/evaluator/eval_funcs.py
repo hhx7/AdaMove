@@ -71,6 +71,8 @@ def top_k(loc_pred, loc_true, topk):
     loc_pred = torch.FloatTensor(loc_pred)
     val, index = torch.topk(loc_pred, topk, 1)
     index = index.numpy()
+    # unique_index = np.unique(index, axis=0)
+    # print(len(index), len(unique_index))
     hit = 0
     rank = 0.0
     dcg = 0.0

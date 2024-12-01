@@ -1,10 +1,10 @@
 import os
 from ray import tune
-from ray.tune.suggest.hyperopt import HyperOptSearch
-from ray.tune.suggest.bayesopt import BayesOptSearch
-from ray.tune.suggest.basic_variant import BasicVariantGenerator
+from ray.tune.search.hyperopt import HyperOptSearch
+from ray.tune.search.bayesopt import BayesOptSearch
+from ray.tune.search.basic_variant import BasicVariantGenerator
 from ray.tune.schedulers import FIFOScheduler, ASHAScheduler, MedianStoppingRule
-from ray.tune.suggest import ConcurrencyLimiter
+from ray.tune.search import ConcurrencyLimiter
 import json
 import torch
 import random
@@ -52,15 +52,18 @@ def run_model(task=None, model_name=None, dataset_name=None, config_file=None,
         exp_id, model_name, dataset_name)
     model = get_model(config, data_feature)
     executor = get_executor(config, model, data_feature)
-    # 训练
+    
+    # 训练  
     if train or not os.path.exists(model_cache_file):
         executor.train(train_data, valid_data)
-        if saved_model:
+        if saved_model: 
             executor.save_model(model_cache_file)
     else:
         executor.load_model(model_cache_file)
     # 评估，评估结果将会放在 cache/evaluate_cache 下
-    executor.evaluate(test_data)
+    executor.evaluate(test_data)  
+    
+    
 
 
 def parse_search_space(space_file):
