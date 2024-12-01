@@ -36,7 +36,7 @@ We implement our model using [LibCity](https://github.com/LibCity/Bigscity-LibCi
   The implementation of our model `AdaMove` is located in `/libcity/model/trajectory_loc_prediction/AdaMove.py`.
 
 - **Hyperparameter Configuration:**  
-  Hyperparameter settings for `AdaMove` are saved in the JSON file located at `/libcity/config/model/traj_loc_pred/AdaMove.json`.
+  Hyperparameter settings for `AdaMove` are saved in the JSON file located at `/libcity/config/model/traj_loc_pred/AdaMove_*.json`.
 
 
 The main starting point for training and testing a model is the script `run_model.py`. This script facilitates the process of starting deep learning model training and evaluation within the [LibCity](https://github.com/LibCity/Bigscity-LibCity.git) framework.
@@ -46,7 +46,7 @@ The main starting point for training and testing a model is the script `run_mode
 
 The `run_model.py` script is used for training and evaluating a single model in LibCity. When running `run_model.py`, we need to specify the following three parameters: **task**, **dataset**, and **model**.
 
-### Training and Evaluating in NYC
+### Training and Evaluating on NYC
  
 1. **Training:**
 
@@ -62,7 +62,7 @@ The `run_model.py` script is used for training and evaluating a single model in 
 
     > **Note:** Replace `<exp_id>` with the trained model's experiment ID.
 
-### Training and Evaluating in TKY
+### Training and Evaluating on TKY
 
 1. **Training:**
 
@@ -78,7 +78,7 @@ The `run_model.py` script is used for training and evaluating a single model in 
 
     > **Note:** Similarly, replace `<exp_id>` with the trained model's experiment ID.
 
-By using the above commands, you can train and evaluate the `AdaMove` model on specified datasets for trajectory location prediction tasks in New York City (NYC) and Tokyo (TKY). Make sure to fill in the experiment ID (`exp_id`) correctly based on your actual training scenario to load the corresponding model for testing.
+By using the above commands, you can train and evaluate the `AdaMove` model on specified datasets for trajectory location prediction tasks on NYC and TKY. Make sure to fill in the experiment ID (`exp_id`) correctly based on your actual training scenario to load the corresponding model for testing.
 ## The hyperparameters of AdaMove
 
 The hyperparameters for AdaMove are defined in `/libcity/config/model/traj_loc_pred/AdaMove_*.json`.  
