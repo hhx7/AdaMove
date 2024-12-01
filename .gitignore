@@ -1,4 +1,5 @@
 /.vscode
+.DS_Store
 /libcity/tmp/*
 /libcity/cache/*
 /libcity/__pycache__
