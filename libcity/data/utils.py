@@ -106,26 +106,6 @@ def generate_dataloader_pad(train_data, eval_data, test_data, feature_name,
             eval_dataloader: Dataloader composed of Batch (class) \n
             test_dataloader: Dataloader composed of Batch (class)
     """
-    # save location from train_data
-    # train_loc = {}
-    # for row in train_data:
-    #     history_loc = row[0]
-    #     current_loc = row[2]
-    #     user = row[6]
-    #     if user not in train_loc:
-    #         train_loc[user] = set()
-    #     train_loc[user] = train_loc[user].union(history_loc)
-    #     train_loc[user] = train_loc[user].union(current_loc)
-    # print(train_loc)
-
-    # save train, eval, test
-    # divide_trajs = {
-    #     "train": train_data,
-    #     "eval": eval_data,
-    #     "test": test_data,
-    # }
-    # with open('./raw_data/divide_trajs.json', 'w') as f:
-    #         json.dump(divide_trajs, f)
 
     train_dataset = ListDataset(train_data)
     eval_dataset = ListDataset(eval_data)

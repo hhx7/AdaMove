@@ -13,8 +13,8 @@
   "eval_rate": 0.1, 
   "history_type": "splice",
   "xhistory_fixed_length": 20,
-  "xx_history_type": "x_cut_off2splice",
-  "xx_history_fixed_length": 5,
+  "x_history_type": "x_cut_off2splice",
+  "x_history_fixed_length": 5,
   "cut_method": "time_interval", 
   "traj_encoder": "StandardTrajectoryEncoder",
   "shuffle": true 

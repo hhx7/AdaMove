@@ -196,7 +196,24 @@ class AdaMove(AbstractModel):
         self.tta = TTA(self.fc_final, self.loc_size, self.device, self.filter_M)
 
         self._logger = getLogger()
+        self.avg_time = []
         self.total_time = []
+        self.init_weights()
+
+    def init_weights(self):
+        ih = (param.data for name, param in self.named_parameters()
+              if 'weight_ih' in name)
+        hh = (param.data for name, param in self.named_parameters()
+              if 'weight_hh' in name)
+        b = (param.data for name, param in self.named_parameters()
+             if 'bias' in name)
+
+        for t in ih:
+            nn.init.xavier_uniform_(t)
+        for t in hh:
+            nn.init.orthogonal_(t)
+        for t in b:
+            nn.init.constant_(t, 0)
 
 
     def forward(self, batch): 
@@ -313,11 +330,12 @@ class AdaMove(AbstractModel):
             score = F.log_softmax(y, dim=1)
             end_time = time.time()  
             batch_time = end_time - start_time
- 
-            self.total_time.append(batch_time/batch_size)
+
+            self.avg_time.append(batch_time/batch_size)
+            self.total_time.append(batch_time)
             if len(self.total_time) % 10 == 0:
                 total_tim = sum(self.total_time)
-                average_tim =  total_tim / (len(self.total_time))
+                average_tim =  sum(self.avg_time)/ (len(self.avg_time))
                 self._logger.info("Single Time = %.4f seconds; Average Time = %.4f seconds; Total Time = %.4f seconds", batch_time, average_tim, total_tim)
             return score, 0
 

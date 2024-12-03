@@ -64,7 +64,7 @@ class TrajLocPredExecutor(AbstractExecutor):
             self._logger.info('start train')
             self.model, avg_loss = self.run(train_dataloader, self.model,
                                             self.config['learning_rate'], self.config['clip'])
-            self._logger.info('==>Train Epoch:{:4d} Loss:{:.5f} learning_rate:{}'.format(
+            self._logger.info('==>Train Epoch:{:4d} Loss:{:.5f} learning_rate:{:.5f}'.format(
                 epoch, avg_loss, lr))
             # eval stage 
             self._logger.info('start evaluate')
