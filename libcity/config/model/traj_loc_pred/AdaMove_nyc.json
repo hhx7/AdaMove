@@ -1,5 +1,5 @@
 {
-    "gpu": false,  
+    "gpu": true,  
     "cache_dataset": false, 
     "gpu_id": 0,  
     "xexp_id": 2970,   
