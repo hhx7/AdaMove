@@ -179,41 +179,27 @@ class AdaMove(AbstractModel):
         self.strategy = config['strategy']
 
         self.emb_loc = nn.Embedding(
-            self.loc_size, self.loc_emb_size,
-            padding_idx=data_feature['loc_pad'])
+            self.loc_size, self.loc_emb_size, 
+            padding_idx=data_feature['loc_pad'], device=self.device)
         self.emb_tim = nn.Embedding(
             self.tim_size, self.tim_emb_size,
-            padding_idx=data_feature['tim_pad'])
-        self.emb_uid = nn.Embedding(self.uid_size, self.uid_emb_size)
+            padding_idx=data_feature['tim_pad'], device=self.device)
+        self.emb_uid = nn.Embedding(self.uid_size, self.uid_emb_size, device=self.device)
         self.input_size = self.loc_emb_size + self.uid_emb_size + self.tim_emb_size
         
-        self.rnn_encoder = nn.LSTM(self.input_size, self.hidden_size, 1)
+        self.rnn_encoder = nn.LSTM(self.input_size, self.hidden_size, 1, device=self.device)
 
         
         self.attn = Attn(self.attn_type, self.hidden_size, self.device)
-        self.fc_final = nn.Linear(self.hidden_size + self.uid_emb_size, self.loc_size, bias=True)
+        self.fc_final = nn.Linear(self.hidden_size + self.uid_emb_size, self.loc_size, bias=True, device=self.device)
 
+         
         self.tta = TTA(self.fc_final, self.loc_size, self.device, self.filter_M)
+ 
 
         self._logger = getLogger()
         self.avg_time = []
         self.total_time = []
-        self.init_weights()
-
-    def init_weights(self):
-        ih = (param.data for name, param in self.named_parameters()
-              if 'weight_ih' in name)
-        hh = (param.data for name, param in self.named_parameters()
-              if 'weight_hh' in name)
-        b = (param.data for name, param in self.named_parameters()
-             if 'bias' in name)
-
-        for t in ih:
-            nn.init.xavier_uniform_(t)
-        for t in hh:
-            nn.init.orthogonal_(t)
-        for t in b:
-            nn.init.constant_(t, 0)
 
 
     def forward(self, batch): 
@@ -254,10 +240,10 @@ class AdaMove(AbstractModel):
 
         start_time = time.time()
 
-        h1 = torch.zeros(1, batch_size, self.hidden_size).to(self.device)
-        h2 = torch.zeros(1, batch_size, self.hidden_size).to(self.device)
-        c1 = torch.zeros(1, batch_size, self.hidden_size).to(self.device)
-        c2 = torch.zeros(1, batch_size, self.hidden_size).to(self.device)
+        h1 = torch.zeros(1, batch_size, self.hidden_size, device=self.device)
+        h2 = torch.zeros(1, batch_size, self.hidden_size, device=self.device)
+        c1 = torch.zeros(1, batch_size, self.hidden_size, device=self.device)
+        c2 = torch.zeros(1, batch_size, self.hidden_size, device=self.device)
 
 
         uid_emb = self.emb_uid(uid)
@@ -350,7 +336,7 @@ class AdaMove(AbstractModel):
         return score
 
     def calculate_loss(self, batch):
-        criterion = nn.NLLLoss().to(self.device)
+        criterion = nn.NLLLoss()
         scores, KLD  = self.forward(batch)
         l_con = criterion(scores, batch['target'])
         return l_con + KLD
