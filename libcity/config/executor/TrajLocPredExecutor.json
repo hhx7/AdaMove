@@ -1,0 +1,21 @@
+{
+  "gpu": true, 
+  "cache_dataset": true,  
+  "gpu_id": 0,  
+  "learning_rate": 1e-3,
+  "L2": 1e-5,  
+  "max_epoch": 30,
+  "lr_step": 3,  
+  "lr_decay": 0.1, 
+  "clip": 5.0,
+  "schedule_threshold": 1e-3,
+  "loss_func": "default",
+  "load_best_epoch": true, 
+  "hyper_tune": false,
+  "optimizer": "adam",
+  "early_stop_lr": 9e-4, 
+  "debug": false,  
+  "xexp_id": 68405
+}  
+
+

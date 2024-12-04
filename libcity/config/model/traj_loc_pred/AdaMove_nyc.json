@@ -1,0 +1,24 @@
+{
+    "gpu": true,  
+    "cache_dataset": false, 
+    "gpu_id": 0,  
+    "xexp_id": 2970,   
+    "test_time": false,
+    "strategy": "sim",
+    "filter_M": 5,
+    "lambda": 0.8,
+    "x_history_type": "x_cut_off2splice",
+    "x_history_fixed_length": 5,
+    "loc_emb_size": 48,
+    "uid_emb_size": 16,
+    "tim_emb_size": 8,
+    "hidden_size": 50,
+    "attn_type": "dot",
+    "learning_rate": 0.001,
+    "lr_step": 3,
+    "max_epoch": 30,
+    "optimizer": "adam",  
+    "window_size": 72,
+    "batch_size": 50
+}
+
